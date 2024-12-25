@@ -1,0 +1,17 @@
+
+train_model_on a set of pictures of known people
+
+
+if somebody not in KNOWN_PEOPLE:
+    if walking_towards(house):
+        while in_view(somebody):
+            # record somebody
+        if duration_in_view(somebody) > 15s:
+            save_recording()
+        # response will timeout waiting delete recording y/n
+        response =  send_email_via_smtp("family_guard: someone was in view for 15s, please review and respond delete y/n", timeout=30s)
+        if not response.delete:
+            delete_recording()
+
+
+

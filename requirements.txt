@@ -1,0 +1,7 @@
+reolinkapi
+opencv-python
+opencv-python-headless
+numpy
+face_recognition
+mediapipe
+getenv
