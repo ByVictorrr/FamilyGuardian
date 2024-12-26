@@ -2,5 +2,4 @@ face_recognition
 opencv-python
 smtplib
 numpy
-reolinkapipy
 python-dotenv
