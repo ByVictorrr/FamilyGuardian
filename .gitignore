@@ -2,3 +2,4 @@ data/
 venv/
 recordings/
 .env
+app.log

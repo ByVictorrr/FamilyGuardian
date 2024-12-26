@@ -1,7 +1,6 @@
-reolinkapi
-opencv-python
-opencv-python-headless
-numpy
 face_recognition
-mediapipe
-getenv
+opencv-python
+smtplib
+numpy
+reolinkapipy
+python-dotenv
