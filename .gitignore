@@ -1,5 +1,7 @@
-# data/
+data/
 venv/
 recordings/
-.env
 app.log
+encoding
+.env
+data.zip

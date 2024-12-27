@@ -26,10 +26,7 @@ jobs:
 
     - name: Train known faces
       run: |
-        python train_known_faces.py
-      env:
-        KNOWN_PEOPLE_DIR: "data"  # Provide the data directory
-        OUTPUT_FILE: "encodings.pkl"
+        python train_known_faces.py --known-faces-dir /home/ml-gpu/known_faces
 
     - name: Upload encodings.pkl artifact
       uses: actions/upload-artifact@v3

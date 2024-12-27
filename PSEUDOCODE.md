@@ -1,3 +1,5 @@
+# Design - PSEUDOCODE
+```pseudocode
 KNOWN_PEOPLE = {person1, person2, ...} 
 
 function train_model_on(pictures) 
@@ -35,4 +37,37 @@ if not is_known_person(somebody) and walking_towards(house):
     save_recording()
     response = send_email_via_smtp("family_guard: someone was in view for 15s, please review and respond delete y/n", timeout=30)
     if not response.delete: 
-      delete_recording()
+      delete_recording() 
+```
+
+**Explanation:**
+
+1. **Initialization:**
+   - `KNOWN_PEOPLE`: A set containing the names or identifiers of known individuals.
+
+2. **Training:**
+   - `train_model_on(pictures)`: Trains a facial recognition model using the provided pictures of known people. This model will be used to identify individuals in subsequent frames.
+
+3. **Core Logic:**
+   - **Check if the person is unknown:** 
+     - `if not is_known_person(somebody)`: If the person is not recognized as a known individual by the trained model.
+   - **Check if the person is approaching the house:** 
+     - `and walking_towards(house)`: If the person is moving in the direction of the house.
+   - **Record while in view:** 
+     - `while in_view(somebody)`: Continuously record the activity of the person as long as they are within the camera's view.
+   - **Check duration:** 
+     - `if duration_in_view(somebody) > 15`: If the person remains in view for more than 15 seconds.
+   - **Save recording:** 
+     - `save_recording()`: Save the recorded video or images of the person.
+   - **Send email notification:** 
+     - `response = send_email_via_smtp(...)`: Send an email with a subject and a message asking for confirmation on whether to delete the recording. The email includes a timeout of 30 seconds for a response.
+   - **Delete recording (if not confirmed):** 
+     - `if not response.delete`: If the user does not explicitly confirm that the recording should be kept, delete the recording.
+
+**Note:**
+
+- This pseudocode provides a basic framework. 
+- You'll need to implement the specific functions (`is_known_person`, `walking_towards`, `in_view`, etc.) based on your chosen methods (e.g., object detection, motion tracking, machine learning algorithms).
+- Consider adding error handling, security measures (e.g., password protection for email responses), and options for customization (e.g., adjustable recording duration thresholds, different notification methods).
+
+This pseudocode should give you a solid starting point for developing your security system. Remember to prioritize privacy and ethical considerations throughout the development and deployment process.
