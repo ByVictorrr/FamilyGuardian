@@ -17,25 +17,21 @@ CAMERA_IP = os.getenv("CAMERA_IP")
 CAMERA_USER = os.getenv("CAMERA_USER")
 CAMERA_PASSWORD = os.getenv("CAMERA_PASSWORD")
 
-PROCESS_FRAME_INTERVAL = int(os.getenv("PROCESS_FRAME_INTERVAL"))
-# Directory to save recordings
+PROCESS_FRAME_INTERVAL = int(os.getenv("PROCESS_FRAME_INTERVAL", 1))
 RECORDINGS_DIR = os.getenv('RECORDINGS_DIR', 'recordings')  # Default to 'recordings' if not specified
-
-# Alert threshold in seconds
 ALERT_THRESHOLD = int(os.getenv('ALERT_THRESHOLD', 15))  # Default to 15 seconds if not specified
-################### SMS Video alert ######################
+
+# MMS configuration
 TO_PHONE_NUMBER = os.getenv("TO_PHONE_NUMBER")
 PHONE_CARRIER_GATEWAY = os.getenv("PHONE_NUMBER_CARRIER_GATEWAY")
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASS = os.getenv("SMTP_PASS")
-SMTP_SERVER= os.getenv("SMTP_SERVER")
+SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 
 
 def load_known_faces(pkl_file_path):
-    """Loads known faces and names from a pickle file.
-
-    :returns tuple: List of encoded face vectors, corresponding names of individuals.
-    """
+    """Loads known faces and names from a pickle file."""
     if not os.path.exists(pkl_file_path):
         logging.warning(f"Pickle file {pkl_file_path} does not exist. All faces will be treated as unknown.")
         return [], []
@@ -50,15 +46,7 @@ def load_known_faces(pkl_file_path):
 
 
 def initialize_video_stream(rtsp_url):
-    """
-    Initializes the video stream from the given RTSP URL.
-
-    Args:
-        rtsp_url (str): RTSP URL of the video stream.
-
-    Returns:
-        cv2.VideoCapture: Opened video capture object.
-    """
+    """Initializes the video stream from the given RTSP URL."""
     try:
         cap = cv2.VideoCapture(rtsp_url)
         if not cap.isOpened():
@@ -71,39 +59,28 @@ def initialize_video_stream(rtsp_url):
 
 
 def handle_unknown_face(unknown_frames, unknown_face_start_time):
-    """
-    Handles the unknown face detection, saves the recording, and triggers an alert.
-
-    Args:
-        unknown_frames (list): List of frames containing the unknown face.
-        unknown_face_start_time (datetime): Time when the unknown face was first detected.
-
-    Returns:
-        tuple: Updated unknown face start time and unknown frames list.
-    """
+    """Handles unknown face detection, saves the recording, and triggers an MMS alert."""
     duration = (datetime.now() - unknown_face_start_time).total_seconds()
     if duration > ALERT_THRESHOLD:
         video_path = save_recording(unknown_frames)
         logging.info(f"Unknown face recorded and saved to: {video_path}")
-        # TODO: Add notification or alert system
+        send_video_to_phone(video_path)  # Upload the video file
         return None, []
     return unknown_face_start_time, unknown_frames
 
 
-def send_video_to_phone(video_file_path, smtp_port=587):
+def send_video_to_phone(video_file_path):
     """Sends a video file to a phone number via an MMS gateway."""
     if not os.path.exists(video_file_path):
-        print(f"Error: Video file {video_file_path} does not exist.")
+        logging.error(f"Error: Video file {video_file_path} does not exist.")
         return
 
-    # Create the email
     recipient = f"{TO_PHONE_NUMBER}@{PHONE_CARRIER_GATEWAY}"
     msg = MIMEMultipart()
     msg["From"] = SMTP_USER
     msg["To"] = recipient
-    msg["Subject"] = "Video Attachment"  # Optional; may not appear on all devices
+    msg["Subject"] = "Security Alert: Unknown Face Detected"
 
-    # Attach the video file
     with open(video_file_path, "rb") as video_file:
         part = MIMEBase("application", "octet-stream")
         part.set_payload(video_file.read())
@@ -114,26 +91,24 @@ def send_video_to_phone(video_file_path, smtp_port=587):
         )
         msg.attach(part)
 
-    # Send the email
     try:
-        with smtplib.SMTP(SMTP_SERVER, smtp_port) as server:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASS)
             server.sendmail(SMTP_USER, recipient, msg.as_string())
-            print(f"Video sent to {recipient}")
+            logging.info(f"Video sent to {recipient}")
     except Exception as e:
-        print(f"Failed to send MMS: {e}")
+        logging.error(f"Failed to send MMS: {e}")
 
 
-
-def process_video_frames(cap_obj: cv2.VideoCapture, known_face_encodings, known_face_names, process_frame_interval=1):
+def process_video_frames(cap, known_face_encodings, known_face_names, process_frame_interval=1):
     """Processes video frames, detects and identifies faces, and handles unknown faces."""
     frame_count = 0
     unknown_face_start_time = None
     unknown_frames = []
 
-    while cap_obj.isOpened():
-        ret, frame = cap_obj.read()
+    while cap.isOpened():
+        ret, frame = cap.read()
         if not ret:
             logging.error("Failed to capture frame. Exiting...")
             break
@@ -169,30 +144,21 @@ def process_video_frames(cap_obj: cv2.VideoCapture, known_face_encodings, known_
 
         frame_count += 1
 
-    cap_obj.release()
+    cap.release()
     cv2.destroyAllWindows()
 
 
 def save_recording(frames, fps=20.0):
-    """
-    Saves the given frames as a video recording.
-
-    Args:
-        frames (list): List of frames to save.
-        fps (float): Frames per second for the recording.
-
-    Returns:
-        str: Path to the saved video file.
-    """
+    """Saves the given frames as a video recording."""
     if not frames:
         raise ValueError("No frames to save.")
 
-    os.makedirs("recordings", exist_ok=True)
+    os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
     height, width, _ = frames[0].shape
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    video_path = os.path.join("recordings", f"recording_{timestamp}.mp4")
+    video_path = os.path.join(RECORDINGS_DIR, f"recording_{timestamp}.mp4")
     out = cv2.VideoWriter(video_path, fourcc, fps, (width, height))
 
     for frame in frames:
